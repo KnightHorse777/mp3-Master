@@ -30,3 +30,16 @@ Use this responsibly.
 ```bash
 git clone https://github.com/your-username/youtube-mp3-converter.git
 cd youtube-mp3-converter
+
+##set up
+
+### 2. create a folder templates 
+###  move index.html inside templates folder.
+## runung
+
+### 3. install requirements
+```bash 
+pip install -r requirements.txt
+
+```bash
+python app.py
