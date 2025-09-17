@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube → MP3 Converter</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f8f9fa; text-align: center; padding: 50px; }
+    .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);}
+    input, button { padding: 10px; font-size: 16px; margin: 10px; width: 90%; border-radius: 6px; border: 1px solid #ccc; }
+    button { background: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .progress { margin-top: 20px; width: 100%; background: #eee; border-radius: 6px; height: 24px; overflow: hidden; }
+    .bar { height: 100%; width: 0%; background: #28a745; transition: width 0.5s; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎵 YouTube to MP3 Converter</h1>
+    <form id="downloadForm">
+      <input type="text" id="url" name="url" placeholder="Enter YouTube URL" required>
+      <button type="submit">Convert & Download</button>
+    </form>
+
+    <div id="status"></div>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+    <p id="filename"></p>
+  </div>
+
+  <script>
+  const form = document.getElementById("downloadForm");
+  const statusDiv = document.getElementById("status");
+  const bar = document.getElementById("bar");
+  const filenameEl = document.getElementById("filename");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    statusDiv.innerText = "⏳ Starting download...";
+    bar.style.width = "0%";
+    filenameEl.innerText = "";
+
+    const url = document.getElementById("url").value;
+
+    const formData = new FormData();
+    formData.append("url", url);
+
+    await fetch("/download", { method: "POST", body: formData });
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/progress");
+        if (!res.ok) return; // avoid crashes if backend not ready
+        const data = await res.json();
+
+        if (data.status === "downloading") {
+          statusDiv.innerText = "⬇️ Downloading...";
+          filenameEl.innerText = data.filename
+            ? "File: " + data.filename + " (Saved in Downloads)"
+            : "";
+
+          if (data.total_bytes && data.total_bytes > 0) {
+            const percent = Math.min(
+              100,
+              (data.downloaded_bytes / data.total_bytes) * 100
+            );
+            bar.style.width = percent.toFixed(2) + "%";
+          }
+        } else if (data.status === "finished") {
+          statusDiv.innerText = "✅ Download complete! File saved in Downloads.";
+          bar.style.width = "100%";
+          clearInterval(interval);
+        } else if (data.status === "error") {
+          statusDiv.innerText = "❌ Error: " + (data.message || "Unknown error");
+          clearInterval(interval);
+        }
+      } catch (err) {
+        console.error("Progress fetch failed:", err);
+      }
+    }, 1000);
+  });
+</script>
+
+</body>
+</html>
